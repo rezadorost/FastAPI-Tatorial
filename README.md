@@ -142,14 +142,15 @@ Database integration will be added later in the learning process.
 * Pydantic
 * CRUD operations
 * API testing with Swagger UI
-
-## 🔜 Next Steps
-
 * HTTP status codes
 * Error handling
 * `HTTPException`
 * Response models
 * Pydantic validation
+
+
+## 🔜 Next Steps
+
 * Dependency Injection
 * Better project structure
 * Database integration
