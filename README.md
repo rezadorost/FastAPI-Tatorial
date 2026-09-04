@@ -169,10 +169,10 @@ Completed topics:
 * [x] Optional and default fields
 * [x] Custom validation
 * [x] Basic project structure
+* [x]Dependencies
 
 Next topics include:
 
-* Dependencies
 * Mini project
 * Database
 * SQLAlchemy / ORM
