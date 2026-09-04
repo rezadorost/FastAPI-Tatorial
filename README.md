@@ -169,7 +169,7 @@ Completed topics:
 * [x] Optional and default fields
 * [x] Custom validation
 * [x] Basic project structure
-* [x]Dependencies
+* [x] Dependencies
 
 Next topics include:
 
