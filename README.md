@@ -170,11 +170,11 @@ Completed topics:
 * [x] Custom validation
 * [x] Basic project structure
 * [x] Dependencies
+* [x] Mini project
+* [x] Database
 
 Next topics include:
 
-* Mini project
-* Database
 * SQLAlchemy / ORM
 * Authentication
 * JWT
