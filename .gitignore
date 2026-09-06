@@ -9,6 +9,7 @@ venv/
 env/
 .venv/
 
+names.db
 
 .env
 .env.local
