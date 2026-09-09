@@ -4,30 +4,36 @@ A simple FastAPI learning project built step by step while learning Python backe
 
 ## Features
 
-- FastAPI application
-- Uvicorn server
-- GET, POST, PUT, and DELETE endpoints
-- Query parameters
-- Path parameters
-- JSON request bodies
-- Pydantic models
-- CRUD operations using a SQLite database
-- HTTP status codes
-- Error handling with `HTTPException`
-- Response models
-- Pydantic field validation
-- Custom validation with `field_validator`
-- Default field values
-- Basic project structure using `APIRouter`
-- Dependency Injection
-- SQLAlchemy ORM
-- Database sessions
-- Database CRUD operations
+* FastAPI application
+* Uvicorn server
+* GET, POST, PUT, and DELETE endpoints
+* Query parameters
+* Path parameters
+* JSON request bodies
+* Pydantic models
+* CRUD operations using a SQLite database
+* HTTP status codes
+* Error handling with `HTTPException`
+* Response models
+* Pydantic field validation
+* Custom validation with `field_validator`
+* Default field values
+* Basic project structure using `APIRouter`
+* Dependency Injection
+* SQLAlchemy ORM
+* Database sessions
+* Database CRUD operations
+* SQLAlchemy relationships
+* One-to-Many database relationships
+* Foreign Keys
+* SQLAlchemy `relationship()`
+* SQLAlchemy `back_populates`
 
 ## Project Structure
 
 ```text
 FastAPI-Tatorial/
+
 │
 ├── core/
 │   ├── database.py    # Database configuration and session management
@@ -63,10 +69,10 @@ Contains the database configuration.
 
 It is responsible for:
 
-- Creating the database URL
-- Creating the SQLAlchemy engine
-- Creating database sessions
-- Providing a database session through Dependency Injection
+* Creating the database URL
+* Creating the SQLAlchemy engine
+* Creating database sessions
+* Providing a database session through Dependency Injection
 
 The general flow is:
 
@@ -92,58 +98,226 @@ SQLAlchemy models are used to map Python classes to database tables.
 
 The project currently includes:
 
-- `Name`
-- `NameResponse`
-- `Names`
+* `Name`
+* `NameResponse`
+* `PhoneNumberCreate`
+* `PhoneNumberResponse`
+* `Names`
+* `PhoneNumbers`
 
-The `Names` SQLAlchemy model represents the `names` table in the SQLite database:
+The `Names` SQLAlchemy model represents the `names` table:
 
 ```text
 Names
+
 ├── id
 ├── name
 └── age
 ```
 
-### `routes.py`
+The `PhoneNumbers` SQLAlchemy model represents the `phone_numbers` table:
 
-Contains the API routes and endpoints.
+```text
+PhoneNumbers
+
+├── id
+├── number
+└── name_id
+```
+
+## API Routes
 
 The current project supports:
 
 ```text
 GET     /
 GET     /names/{id}
+
 POST    /names
 PUT     /names/{id}
 DELETE  /names/{id}
+
+POST    /names/{name_id}/phone-numbers
+GET     /names/{name_id}/phone-numbers
 ```
 
-The CRUD endpoints currently use SQLAlchemy and SQLite for database operations.
+The CRUD endpoints use SQLAlchemy and SQLite for database operations.
+
+## Database Relationships
+
+The project currently implements a **One-to-Many relationship** between `Names` and `PhoneNumbers`.
+
+The relationship is:
+
+```text
+One Name
+   │
+   ├── Phone Number
+   ├── Phone Number
+   └── Phone Number
+```
+
+A person can have multiple phone numbers, while each phone number belongs to one person.
+
+The relationship is implemented using a Foreign Key:
+
+```text
+Names.id
+   ↑
+   │
+PhoneNumbers.name_id
+```
+
+The `PhoneNumbers.name_id` column references `Names.id`.
+
+### SQLAlchemy Relationship
+
+The `Names` model defines the relationship:
+
+```python
+phone_numbers = relationship(
+    "PhoneNumbers",
+    back_populates="person"
+)
+```
+
+The `PhoneNumbers` model defines the reverse relationship:
+
+```python
+person = relationship(
+    "Names",
+    back_populates="phone_numbers"
+)
+```
+
+This allows SQLAlchemy to navigate between related objects.
+
+For example:
+
+```text
+name.phone_numbers
+```
+
+returns all phone numbers belonging to that person.
+
+## Creating Phone Numbers
+
+A phone number can be added using:
+
+```text
+POST /names/{name_id}/phone-numbers
+```
+
+Example request:
+
+```json
+{
+    "number": "09123456789"
+}
+```
+
+The `name_id` is provided through the URL.
+
+The endpoint first checks whether the requested person exists.
+
+If the person exists, a new `PhoneNumbers` SQLAlchemy object is created and saved using the database session.
+
+The general flow is:
+
+```text
+Request
+   ↓
+Find Name by ID
+   ↓
+Check if Name exists
+   ↓
+Create PhoneNumbers object
+   ↓
+db.add()
+   ↓
+db.commit()
+   ↓
+Save to SQLite
+```
+
+## Retrieving Phone Numbers
+
+A person's phone numbers can be retrieved using:
+
+```text
+GET /names/{name_id}/phone-numbers
+```
+
+The endpoint uses the SQLAlchemy relationship:
+
+```python
+name.phone_numbers
+```
+
+If a person has multiple phone numbers, all related phone numbers are returned.
+
+Example:
+
+```text
+Name #1
+   │
+   ├── 09123456789
+   ├── 09351234567
+   └── 09987654321
+```
 
 ## Validation
 
 The `Name` model currently validates the following:
 
-- `id` must be greater than `0`
-- `name` must contain at least `2` characters
-- `name` must contain at most `20` characters
-- Leading and trailing spaces are removed
-- A name containing only spaces is rejected
-- `age` has a default value of `18`
+* `id` must be greater than `0`
+* `name` must contain at least `2` characters
+* `name` must contain at most `20` characters
+* Leading and trailing spaces are removed
+* A name containing only spaces is rejected
+* `age` has a default value of `18`
+
+Phone numbers are validated using `PhoneNumberCreate`.
+
+The phone number:
+
+* Must contain exactly `11` characters
+* Must contain only digits
+
+Example:
+
+```python
+class PhoneNumberCreate(BaseModel):
+    number: str = Field(min_length=11, max_length=11)
+```
+
+Custom validation is performed using `field_validator`.
 
 ## Response Models
 
-The project uses a response model for retrieving data:
+The project uses Pydantic response models to control and validate API responses.
+
+For names:
 
 ```python
 class NameResponse(BaseModel):
+
     id: int
     name: str
     age: int
 ```
 
-This controls and validates the data returned by the API.
+For phone numbers:
+
+```python
+class PhoneNumberResponse(BaseModel):
+
+    id: int
+    number: str
+    name_id: int
+```
+
+The phone-number list endpoint returns multiple `PhoneNumberResponse` objects.
 
 ## Error Handling
 
@@ -168,9 +342,11 @@ Invalid request data is automatically handled by FastAPI and Pydantic with:
 422 Unprocessable Entity
 ```
 
+For example, an invalid phone number will fail validation before reaching the database.
+
 ## Database Integration
 
-The project uses the following flow:
+The project uses the following architecture:
 
 ```text
 FastAPI
@@ -212,18 +388,26 @@ The current CRUD operations work with the database:
 
 ```text
 POST
+
 → Create a SQLAlchemy object
 → db.add()
 → db.commit()
 
+
 GET
+
 → db.get()
+→ Read data
+
 
 DELETE
+
 → db.delete()
 → db.commit()
 
+
 PUT
+
 → Update the SQLAlchemy object
 → db.commit()
 ```
@@ -234,20 +418,28 @@ Dependencies are used to provide reusable functionality to endpoints.
 
 The project currently uses dependencies for:
 
-- Providing a database Session with `get_db`
-- Checking whether a requested ID exists with `check_name_id`
+* Providing a database Session with `get_db`
+* Checking whether a requested ID exists with `check_name_id`
 
 A dependency can also depend on another dependency:
 
 ```text
 Endpoint
+
    ↓
+
 Depends(check_name_id)
+
    ↓
+
 check_name_id
+
    ↓
+
 Depends(get_db)
+
    ↓
+
 Database Session
 ```
 
@@ -287,47 +479,55 @@ The API will run locally.
 
 You can access the interactive Swagger documentation at:
 
-`http://127.0.0.1:8000/docs`
+```text
+http://127.0.0.1:8000/docs
+```
 
 ## Current Status
 
-This project is currently being used as a learning project for FastAPI.
+This project is currently being used as a learning project for FastAPI and Python backend development.
 
 Completed topics:
 
-- [x] FastAPI setup
-- [x] Uvicorn
-- [x] Routes and endpoints
-- [x] HTTP methods
-- [x] Query parameters
-- [x] Path parameters
-- [x] Request body and JSON
-- [x] Pydantic `BaseModel`
-- [x] Basic CRUD
-- [x] HTTP status codes
-- [x] `HTTPException`
-- [x] Basic error handling
-- [x] Response models
-- [x] Pydantic validation
-- [x] Optional and default fields
-- [x] Custom validation
-- [x] Basic project structure
-- [x] Dependency Injection
-- [x] SQLite database
-- [x] SQLAlchemy Engine
-- [x] SQLAlchemy Session
-- [x] SQLAlchemy ORM models
-- [x] Database CRUD operations
-- [x] Mini project
+* [x] FastAPI setup
+* [x] Uvicorn
+* [x] Routes and endpoints
+* [x] HTTP methods
+* [x] Query parameters
+* [x] Path parameters
+* [x] Request body and JSON
+* [x] Pydantic `BaseModel`
+* [x] Basic CRUD
+* [x] HTTP status codes
+* [x] `HTTPException`
+* [x] Basic error handling
+* [x] Response models
+* [x] Pydantic validation
+* [x] Optional and default fields
+* [x] Custom validation
+* [x] Basic project structure
+* [x] Dependency Injection
+* [x] SQLite database
+* [x] SQLAlchemy Engine
+* [x] SQLAlchemy Session
+* [x] SQLAlchemy ORM models
+* [x] Database CRUD operations
+* [x] Foreign Keys
+* [x] SQLAlchemy `relationship()`
+* [x] `back_populates`
+* [x] One-to-Many relationships
+* [x] Related database records
+* [x] Querying related records
+* [x] Testing database relationships
+* [x] Mini project
 
 Next topics include:
 
-- Database Relationships
-- Authentication
-- JWT
-- Testing
-- Docker
-- Deployment
+* Authentication
+* JWT
+* Testing
+* Docker
+* Deployment
 
 # IMPORTANT
 
@@ -347,23 +547,45 @@ The learning process follows a gradual progression:
 
 ```text
 FastAPI Fundamentals
+
         ↓
+
 Routing & HTTP
+
         ↓
+
 Pydantic & Validation
+
         ↓
+
 Error Handling
+
         ↓
+
 Dependency Injection
+
         ↓
+
 SQLAlchemy / ORM
+
         ↓
+
 Database Integration
+
         ↓
+
+Database Relationships
+
+        ↓
+
 Authentication
+
         ↓
+
 Testing
+
         ↓
+
 Docker & Deployment
 ```
 
