@@ -1,38 +1,64 @@
-# FastAPI Tutorial API
+# FastAPI Tutorial
 
-A RESTful API built with **FastAPI**, **SQLAlchemy**, and **SQLite** as a hands-on Python backend development project.
+A practical Python backend development project built with **FastAPI**, **SQLAlchemy**, **Pydantic**, and **JWT**.
 
-This project covers database integration, CRUD operations, user authentication, JWT-based access control, and role-based permissions.
+This project demonstrates the development of a RESTful API with user management, phone number management, authentication, and role-based authorization.
 
 ## Features
 
-- FastAPI application and RESTful API endpoints
-- Pydantic request and response validation
-- SQLAlchemy ORM and SQLite database
-- Database sessions and dependency injection
-- One-to-many relationships between users and phone numbers
-- User registration and login
-- Password hashing
-- JWT authentication
-- Protected endpoints
-- Role-Based Access Control (RBAC)
-- Permission-based authorization
-- Admin user management
-- User promotion and demotion
-- Protection against demoting the last administrator
-- Interactive API documentation with Swagger UI and ReDoc
+### API Development
+- RESTful API development with FastAPI.
+- CRUD operations.
+- Path and query parameters.
+- Request validation using Pydantic.
+- Response models.
+- HTTP exception handling.
+- Dependency Injection.
 
-## Tech Stack
+### Database
+- SQLite database.
+- SQLAlchemy ORM.
+- Declarative database models.
+- Foreign key relationships.
+- One-to-many relationships.
+- Database session management.
+- Cascade operations.
+
+### Authentication
+- User registration and login.
+- Password hashing and verification with `pwdlib`.
+- JWT access token generation and validation.
+- Token expiration.
+- OAuth2 Bearer authentication.
+- Authenticated user retrieval.
+
+### Authorization
+- Role-Based Access Control (RBAC).
+- Permission-based authorization.
+- User and administrator roles.
+- Protected API endpoints.
+- Resource ownership checks.
+- Administrative user management.
+- User promotion and demotion.
+- Protection against deleting the current administrator.
+- Protection against demoting the last administrator.
+
+### API Documentation
+- Automatic OpenAPI documentation.
+- Swagger UI.
+- ReDoc.
+
+## Technology Stack
 
 | Technology | Purpose |
 |---|---|
 | Python | Programming language |
 | FastAPI | Web framework |
 | Uvicorn | ASGI server |
-| Pydantic | Data validation |
-| SQLAlchemy | ORM and database operations |
+| SQLAlchemy | ORM |
 | SQLite | Database |
-| PyJWT | JWT creation and validation |
+| Pydantic | Data validation |
+| PyJWT | JWT handling |
 | pwdlib | Password hashing |
 
 ## Project Structure
@@ -41,7 +67,6 @@ This project covers database integration, CRUD operations, user authentication, 
 FastAPI-Tatorial/
 │
 ├── core/
-│   ├── __init__.py
 │   ├── auth.py
 │   ├── database.py
 │   ├── main.py
@@ -49,189 +74,57 @@ FastAPI-Tatorial/
 │   ├── models.py
 │   └── routes.py
 │
-├── docs/
-├── .venv/
-├── names.db
 ├── requirements.txt
 └── README.md
 ```
 
-### Main Components
+## Application Architecture
 
-**`core/main.py`**
+### Database Models
 
-Creates and configures the FastAPI application, registers the router, and initializes database tables.
+The application uses two main database models:
 
-**`core/database.py`**
+**Users**
 
-Contains the SQLite database configuration, SQLAlchemy engine, declarative base, session factory, and database dependency.
+Stores user account information:
+- `id`
+- `username`
+- `email`
+- `hashed_password`
+- `role`
 
-**`core/models.py`**
+Usernames and email addresses are unique. Newly registered users receive the `user` role by default.
 
-Contains SQLAlchemy database models and Pydantic schemas.
+**PhoneNumbers**
 
-**`core/routes.py`**
+Stores phone numbers associated with user accounts.
 
-Contains API endpoints, database operations, and authorization dependencies.
+The relationship between `Users` and `PhoneNumbers` is one-to-many: a user can have multiple phone numbers, while each phone number belongs to one user.
 
-**`core/auth.py`**
+### Authentication Flow
 
-Contains password hashing, password verification, JWT handling, current-user authentication, role permissions, and permission-checking dependencies.
+1. A user registers with a username, email, and password.
+2. The password is hashed before it is stored.
+3. The user submits login credentials.
+4. The application verifies the password.
+5. A JWT access token is generated.
+6. The client sends the token with protected requests.
+7. The application validates the token and retrieves the user from the database.
 
-**`core/make_admin.py`**
+### Authorization Flow
 
-A utility script for assigning the administrator role to a user.
+Authentication identifies the user. Authorization determines which operations that user can perform.
 
-## Database Design
+The application uses roles and permissions:
 
-The application currently uses two main database models:
+- `user`: access to permitted operations on their own phone numbers.
+- `admin`: access to administrative user-management operations.
 
-### Users
-
-| Field | Description |
-|---|---|
-| `id` | User ID |
-| `username` | Unique username |
-| `email` | Unique email address |
-| `hashed_password` | Hashed password |
-| `role` | User role, defaulting to `user` |
-
-### PhoneNumbers
-
-| Field | Description |
-|---|---|
-| `id` | Phone number ID |
-| `number` | Phone number |
-| `user_id` | Foreign key referencing `Users.id` |
-
-### Relationship
-
-The application implements a one-to-many relationship:
-
-```text
-One User
-   |
-   ├── Phone Number
-   ├── Phone Number
-   └── Phone Number
-```
-
-Each user can have multiple phone numbers, while each phone number belongs to one user.
-
-## Authentication
-
-Authentication verifies the identity of a user.
-
-The application uses:
-
-- Password hashing with `pwdlib`
-- Password verification during login
-- JWT access tokens
-- OAuth2 Bearer token authentication
-- A protected current-user dependency
-
-### Registration
-
-```http
-POST /users/register
-```
-
-Creates a new user account.
-
-Example request:
-
-```json
-{
-    "username": "example_user",
-    "email": "example@example.com",
-    "password": "your-password"
-}
-```
-
-Duplicate usernames and email addresses are rejected.
-
-### Login
-
-```http
-POST /users/login
-```
-
-Authenticates a user and returns a JWT access token.
-
-The login endpoint uses OAuth2 password form data.
-
-Example response:
-
-```json
-{
-    "access_token": "your-access-token",
-    "token_type": "bearer"
-}
-```
-
-### Current User
-
-```http
-GET /users/me
-```
-
-Returns information about the authenticated user.
-
-Protected endpoints require a valid Bearer token.
-
-## Authorization
-
-Authorization determines what an authenticated user is allowed to do.
-
-The project implements **Role-Based Access Control (RBAC)**.
-
-### Roles
-
-The current roles are:
-
-- `user`
-- `admin`
-
-### Permissions
-
-Permissions define which operations a role can perform.
-
-Examples include:
-
-```text
-users:read
-users:update
-users:delete
-users:promote
-users:demote
-admins:read
-phone_numbers:read_own
-phone_numbers:create
-phone_numbers:update_own
-phone_numbers:delete_own
-```
-
-Permissions are mapped to roles in `ROLE_PERMISSIONS`.
-
-The `require_permission()` dependency checks whether the authenticated user's role has the required permission.
-
-The user's role is retrieved from the database during authentication, rather than being stored in the JWT payload.
-
-### Administrator Operations
-
-Administrators can:
-
-- View all users
-- View an individual user
-- Update user information
-- Delete users
-- View administrators
-- Promote users to administrators
-- Demote administrators to regular users
-
-The application also prevents demoting the last remaining administrator.
+Permission checks are implemented through FastAPI dependencies. Ownership checks ensure that regular users cannot modify another user's phone numbers.
 
 ## API Endpoints
+
+The following endpoints are implemented in the application.
 
 ### General
 
@@ -243,8 +136,8 @@ The application also prevents demoting the last remaining administrator.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/phone-numbers` | Add a phone number |
-| GET | `/phone-numbers` | Get the current user's phone numbers |
+| POST | `/phone-numbers` | Create a phone number |
+| GET | `/phone-numbers` | Retrieve the current user's phone numbers |
 | PUT | `/phone-numbers/{phone_id}` | Update an owned phone number |
 | DELETE | `/phone-numbers/{phone_id}` | Delete an owned phone number |
 
@@ -252,40 +145,26 @@ The application also prevents demoting the last remaining administrator.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/users/register` | Register a user |
-| POST | `/users/login` | Authenticate a user |
-| GET | `/users/me` | Get the current user's profile |
+| POST | `/users/register` | Register a new user |
+| POST | `/users/login` | Authenticate and receive an access token |
+| GET | `/users/me` | Retrieve the authenticated user's profile |
 
-### Admin
+### Administration
 
-| Method | Endpoint | Permission |
+| Method | Endpoint | Description |
 |---|---|---|
-| GET | `/admin` | `users:read` |
-| GET | `/admin/users` | `users:read` |
-| GET | `/admin/users/{user_id}` | `users:read` |
-| PUT | `/admin/users/{user_id}` | `users:update` |
-| DELETE | `/admin/users/{user_id}` | `users:delete` |
-| GET | `/admin/users/admins` | `admins:read` |
-| PATCH | `/admin/users/{user_id}/promote` | `users:promote` |
-| PATCH | `/admin/users/{user_id}/demote` | `users:demote` |
+| GET | `/admin` | Access the admin dashboard |
+| GET | `/admin/users` | Retrieve all users |
+| GET | `/admin/users/{user_id}` | Retrieve a specific user |
+| PUT | `/admin/users/{user_id}` | Update user information |
+| DELETE | `/admin/users/{user_id}` | Delete a user |
+| GET | `/admin/users/admins` | Retrieve administrator accounts |
+| PATCH | `/admin/users/{user_id}/promote` | Promote a user to administrator |
+| PATCH | `/admin/users/{user_id}/demote` | Demote an administrator to regular user |
 
-## Error Handling
+Administrative endpoints require the appropriate permissions.
 
-The API uses appropriate HTTP status codes.
-
-| Status Code | Meaning |
-|---|---|
-| 200 | Successful request |
-| 201 | Resource created |
-| 204 | Resource deleted |
-| 400 | Bad request |
-| 401 | Authentication required or invalid credentials |
-| 403 | Insufficient permissions |
-| 404 | Resource not found |
-| 409 | Resource conflict, such as duplicate username or email |
-| 422 | Request validation error |
-
-## Installation and Setup
+## Installation
 
 ### 1. Clone the repository
 
@@ -300,78 +179,100 @@ cd FastAPI-Tatorial
 python3 -m venv .venv
 ```
 
-### 3. Activate the virtual environment
+### 3. Activate the environment
 
-On Linux and macOS:
+**Linux / macOS**
 
 ```bash
 source .venv/bin/activate
 ```
 
+**Windows**
+
+```powershell
+.venv\Scripts\activate
+```
+
 ### 4. Install dependencies
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-### 5. Run the application
+### 5. Start the application
+
+Run this command from the project root:
 
 ```bash
-uvicorn core.main:app --reload
+python -m uvicorn core.main:app --reload
 ```
 
-The API will be available at:
+The application will be available at:
 
-```text
-http://127.0.0.1:8000
-```
+`http://127.0.0.1:8000`
 
 ## API Documentation
 
-FastAPI provides interactive API documentation.
+After starting the application, access the automatically generated documentation:
 
-**Swagger UI**
+| Interface | URL |
+|---|---|
+| Swagger UI | http://127.0.0.1:8000/docs |
+| ReDoc | http://127.0.0.1:8000/redoc |
 
-```text
-http://127.0.0.1:8000/docs
-```
+Swagger UI can be used to explore endpoints, submit requests, and test authenticated operations.
 
-**ReDoc**
+## HTTP Status Codes
 
-```text
-http://127.0.0.1:8000/redoc
-```
+| Status Code | Description |
+|---|---|
+| `200` | OK |
+| `204` | No Content |
+| `400` | Bad Request |
+| `401` | Unauthorized |
+| `403` | Forbidden |
+| `404` | Not Found |
+| `409` | Conflict |
+| `422` | Unprocessable Entity |
 
-These interfaces allow developers to explore API endpoints, inspect schemas, and test requests.
+## Learning Objectives
 
-## Current Project Status
+This repository is part of a practical backend development learning process.
 
-This repository is an evolving backend learning project.
+The concepts implemented so far include:
 
-Completed areas:
+- Python backend development.
+- RESTful API design.
+- FastAPI application structure.
+- Pydantic schemas and validation.
+- SQLAlchemy ORM and relationships.
+- Database sessions.
+- Dependency Injection.
+- Password hashing.
+- JWT authentication.
+- OAuth2 Bearer authentication.
+- Role-Based Access Control.
+- Permission-based authorization.
+- Resource ownership checks.
+- API documentation.
+- Git and GitHub workflow.
 
-- [x] FastAPI fundamentals
-- [x] Routing and HTTP methods
-- [x] Pydantic validation
-- [x] Response models
-- [x] Error handling
-- [x] Dependency injection
-- [x] SQLite integration
-- [x] SQLAlchemy ORM
-- [x] Database relationships
-- [x] CRUD operations
-- [x] Password hashing
-- [x] JWT authentication
-- [x] Protected routes
-- [x] Role-Based Access Control
-- [x] Permission-based authorization
-- [x] Administrator management
-- [x] API documentation
+## Security Notes
 
-Further development will continue as the backend learning roadmap progresses.
+This repository is currently an educational project intended for development and learning.
 
-## Learning Approach
+Before production deployment, security configuration must be reviewed. In particular, the JWT secret key should be supplied through secure environment configuration rather than hardcoded in the source code.
 
-This project is developed incrementally.
+## Author
 
-Each feature is implemented and tested while learning the underlying backend concepts. The goal is to understand how the components work together and gradually build the skills required for professional Python backend development.
+**Reza Dorost**
+
+GitHub: [@rezadorost](https://github.com/rezadorost)
+
+Repository: [FastAPI-Tatorial](https://github.com/rezadorost/FastAPI-Tatorial)
+
+---
+
+## Acknowledgment
+
+**This README.md file was written by ChatGPT (OpenAI).**
